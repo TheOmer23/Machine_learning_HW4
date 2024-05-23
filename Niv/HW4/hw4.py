@@ -17,7 +17,20 @@ def pearson_correlation( x, y):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    x_mean = np.mean(x)
+    y_mean = np.mean(y)
+    
+    x_sub_mean = x - x_mean
+    y_sub_mean = y - y_mean
+    
+    numerator = np.sum(x_sub_mean * y_sub_mean)
+    
+    denominator_x = np.sum(x_sub_mean**2)
+    denominator_y = np.sum(y_sub_mean**2)
+    final_denominator = np.sqrt(denominator_x * denominator_y)
+    
+    r = numerator / final_denominator
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -38,7 +51,20 @@ def feature_selection(X, y, n_features=5):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    X_arr = np.array(X)
+    y_arr = np.array(y)
+    
+    correlations = []
+    for i in range(X_arr.shape[1]):
+        if i == 1:
+            correlations.append(0) ###############
+            continue ##########
+        print(f"feature_checked is:{X.columns[i]}")
+        correlations.append(np.abs(pearson_correlation(X_arr[:,i], y_arr)))
+    
+    top_n_sort_indexs = np.argsort(correlations)[-n_features:]
+    
+    best_features = X.columns[top_n_sort_indexs].tolist()
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -73,7 +99,21 @@ class LogisticRegressionGD(object):
         # iterations history
         self.Js = []
         self.thetas = []
-
+    
+    
+    def h_sigmoid(self, X, theta):
+        exp_x = np.exp(X @ theta)
+        return exp_x / (1 + exp_x)
+        #return 1.0 / (1.0 + np.exp(-X @ theta))
+        
+    def cost_func(self, X, y, theta):
+        m = len(y)
+        h = self.h_sigmoid(X, theta)
+        
+        J = (1/m) * (np.sum(-y * np.log(h) - (1 - y) * np.log(1 - h)))
+        
+        return J
+    
     def fit(self, X, y):
         """
         Fit training data (the learning phase).
@@ -99,7 +139,23 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        X = np.c_[np.ones(len(X)),X] ##### add bias
+        self.theta = np.random.random(X.shape[1]) ##
+        m = len(y)
+        
+        for iter in range(self.n_iter):
+            h = self.h_sigmoid(X, self.theta)
+            gradients = (1/m) * (X.T @ (h - y))
+            
+            self.theta -= self.eta * gradients
+            
+            J = self.cost_func(X, y, self.theta)
+            self.Js.append(J)
+            self.thetas.append(self.theta.copy())
+            
+            if len(self.Js) > 1 and abs((self.Js[-2] - self.Js[-1])) < self.eps: ##does we need abs?
+                print(iter) ####
+                break
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -115,7 +171,11 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        X = np.c_[np.ones(len(X)),X] ##### add bias
+        preds = self.h_sigmoid(X, self.theta)
+        preds[preds >= 0.5] = 1
+        preds[preds < 0.5] = 0
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -153,7 +213,34 @@ def cross_validation(X, y, folds, algo, random_state):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    n_examples = len(y)
+    new_indexs = np.random.permutation(n_examples)
+    
+    shuffled_X = X[new_indexs]
+    shuffled_y = y[new_indexs]
+    
+    fold_size = n_examples // folds
+    
+    all_cv_accuracy = []
+    
+    for fold_num in range(folds):
+        start_index = fold_num * fold_size
+        end_index = start_index + fold_size
+        
+        X_test = shuffled_X[start_index : end_index]
+        y_test = shuffled_y[start_index : end_index]
+        
+        X_train = np.concatenate((shuffled_X[:start_index], shuffled_X[end_index:]), axis=0)
+        y_train = np.concatenate((shuffled_y[:start_index], shuffled_y[end_index:]), axis=0)
+        
+        algo.fit(X_train, y_train)
+        y_test_pred = algo.predict(X_test)
+        
+        fold_accuracy = np.mean(y_test_pred == y_test)
+        all_cv_accuracy.append(fold_accuracy)
+        
+    cv_accuracy = np.mean(all_cv_accuracy)
+        
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -175,7 +262,11 @@ def norm_pdf(data, mu, sigma):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    p_denominator = 1 / (sigma * np.sqrt(2 * np.pi))
+    
+    exp_power = -(((data - mu)**2) / (2 * sigma**2))
+    
+    p = p_denominator * np.exp(exp_power)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
