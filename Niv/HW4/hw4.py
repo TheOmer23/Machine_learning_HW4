@@ -51,15 +51,14 @@ def feature_selection(X, y, n_features=5):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
+    
+    if 'date' in X.columns:
+        X = X.drop(columns=['date'])
     X_arr = np.array(X)
     y_arr = np.array(y)
     
     correlations = []
     for i in range(X_arr.shape[1]):
-        if i == 1:
-            correlations.append(0) ###############
-            continue ##########
-        print(f"feature_checked is:{X.columns[i]}")
         correlations.append(np.abs(pearson_correlation(X_arr[:,i], y_arr)))
     
     top_n_sort_indexs = np.argsort(correlations)[-n_features:]
