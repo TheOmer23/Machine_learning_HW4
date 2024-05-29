@@ -17,7 +17,19 @@ def pearson_correlation( x, y):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    # Calculate the mean of the two columns
+    x_mean = np.mean(x)
+    y_mean = np.mean(y)
+
+    sub_x_x_mean = x - x_mean
+    sub_y_y_mean = y - y_mean
+    # Calculate the sum of the products of the differences
+    sum = np.sum(sub_x_x_mean * sub_y_y_mean)
+    # Calculate the sum of the squares of the differences
+    sum_x = np.sum(sub_x_x_mean ** 2)
+    sum_y = np.sum(sub_y_y_mean ** 2)
+    # Calculate the Pearson correlation coefficient
+    r = sum / np.sqrt(sum_x * sum_y)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -38,7 +50,18 @@ def feature_selection(X, y, n_features=5):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    if 'date' in X.columns:
+        X = X.drop(columns=['date'])
+    X_arr = np.array(X)
+    y_arr = np.array(y)
+    
+    correlations = []
+    for i in range(X_arr.shape[1]):
+        correlations.append(np.abs(pearson_correlation(X_arr[:,i], y_arr)))
+    
+    top_n_sort_indexs = np.argsort(correlations)[-n_features:]
+    
+    best_features = X.columns[top_n_sort_indexs].tolist()
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -99,7 +122,26 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+                # initialize weights
+        self.theta = np.random.rand(X.shape[1])
+
+        for i in range(self.n_iter):
+            # Compute the linear combination of inputs and weights
+            z = np.dot(X, self.theta)
+            # Apply the sigmoid function
+            h = 1 / (1 + np.exp(-z))
+            # Compute the cost
+            J = -np.mean(y * np.log(h) + (1 - y) * np.log(1 - h))
+            # Store the cost and theta values
+            self.Js.append(J)
+            self.thetas.append(self.theta.copy())
+            # Compute the gradient
+            gradient = np.dot(X.T, (h - y)) / y.size
+            # Update the weights
+            self.theta -= self.eta * gradient
+            # Check for convergence
+            if i > 0 and abs(self.Js[-1] - self.Js[-2]) < self.eps:
+                break
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -115,7 +157,9 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        z = np.dot(X, self.theta)
+        h = 1 / (1 + np.exp(-z))
+        preds = np.where(h >= 0.5, 1, 0)
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -153,7 +197,37 @@ def cross_validation(X, y, folds, algo, random_state):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    X, y = X[indices], y[indices]
+
+    # Split data into folds
+    fold_size = X.shape[0] // folds
+    accuracies = []
+
+    for i in range(folds):
+        # Define the start and end of the validation fold
+        start = i * fold_size
+        end = start + fold_size if i != folds - 1 else X.shape[0]
+
+        # Split the data into training and validation sets
+        X_train = np.concatenate((X[:start], X[end:]), axis=0)
+        y_train = np.concatenate((y[:start], y[end:]), axis=0)
+        X_val = X[start:end]
+        y_val = y[start:end]
+
+        # Train the model
+        algo.fit(X_train, y_train)
+
+        # Predict on validation set
+        predictions = algo.predict(X_val)
+
+        # Calculate accuracy
+        accuracy = np.mean(predictions == y_val)
+        accuracies.append(accuracy)
+
+    # Calculate the average accuracy over all folds
+    cv_accuracy = np.mean(accuracies)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -175,7 +249,7 @@ def norm_pdf(data, mu, sigma):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    p = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((data - mu) / sigma) ** 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
