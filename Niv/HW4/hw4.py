@@ -52,8 +52,9 @@ def feature_selection(X, y, n_features=5):
     # TODO: Implement the function.                                           #
     ###########################################################################
     
-    if 'date' in X.columns:
-        X = X.drop(columns=['date'])
+    #if 'date' in X.columns:
+    #    X = X.drop(columns=['date'])
+    X = X.select_dtypes(include=[np.number])
     X_arr = np.array(X)
     y_arr = np.array(y)
     
@@ -153,7 +154,6 @@ class LogisticRegressionGD(object):
             self.thetas.append(self.theta.copy())
             
             if len(self.Js) > 1 and abs((self.Js[-2] - self.Js[-1])) < self.eps: ##does we need abs?
-                print(iter) ####
                 break
         ###########################################################################
         #                             END OF YOUR CODE                            #
@@ -309,7 +309,15 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        np.random.seed(self.random_state)
+        num_samples, num_features = data.shape
+        self.weights = np.ones(self.k) / self.k #initialize as equals weights
+            
+        self.mus = np.random.rand(self.k) * np.ptp(data) + np.min(data) #fancy start_values for the mus that should work good, basicly calc the min-max range of the data, multiply it in some random and add the min value of the data
+        
+        self.sigmas = np.random.random(self.k) #init sigmas with simple random (starting with all ones works as well)
+        
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -321,7 +329,20 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        num_samples, num_features = data.shape
+                        
+        responsibilities = np.zeros((num_samples, self.k))
+        
+        for j in range(self.k):
+            pdf_res = norm_pdf(data, self.mus[j], self.sigmas[j])
+            if pdf_res.ndim > 1:
+                pdf_res = pdf_res.reshape(-1)
+            responsibilities[:, j] = self.weights[j] * pdf_res
+        
+        responsibilities /= responsibilities.sum(axis=1, keepdims=True)
+        self.responsibilities = responsibilities
+        
+                
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -333,7 +354,25 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        num_samples, num_features = data.shape
+        
+        #new w's
+        self.weights = np.mean(self.responsibilities, axis=0)
+        
+        
+        #new mus
+        for j in range(self.k):
+            resp_j = self.responsibilities[:, j]
+            self.mus[j] = (resp_j @ data) / (self.weights[j] * num_samples)
+                
+        
+        #new sigmas
+        for j in range(self.k):
+            diff = data - self.mus[j]
+            resp_j = self.responsibilities[:, j]
+            self.sigmas[j] = np.sqrt((resp_j @ (diff**2)) / (self.weights[j] * num_samples))
+        
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -350,7 +389,25 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        self.init_params(data)
+        self.costs = []
+        
+        for _ in range(self.n_iter):
+            self.expectation(data)
+            self.maximization(data)
+            
+            checked_pdfs = np.zeros((data.shape[0], self.k))
+            for j in range(self.k):
+                checked_pdfs[: , j] = norm_pdf(data, self.mus[j], self.sigmas[j]).reshape(-1)
+            
+            cost = np.sum(-np.log(checked_pdfs @ self.weights))
+            
+            self.costs.append(cost)
+            
+            if len(self.costs) > 1 and np.abs(self.costs[-2] - self.costs[-1]) < self.eps:
+                break
+                
+            
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -376,7 +433,12 @@ def gmm_pdf(data, weights, mus, sigmas):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    
+    k = len(weights)
+    pdf = 0
+    for j in range(k):
+        pdf += weights[j] * norm_pdf(data, mus[j], sigmas[j])
+    return pdf
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -398,6 +460,9 @@ class NaiveBayesGaussian(object):
         self.k = k
         self.random_state = random_state
         self.prior = None
+        self.em_models = None
+        self.unique_classes = None
+        self.n_features = None
 
     def fit(self, X, y):
         """
@@ -414,7 +479,19 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        self.unique_classes = np.unique(y)
+        self.n_features = X.shape[1]
+        self.em_models = {}
+        self.prior = {}
+        
+        for cls in self.unique_classes:
+            self.prior[cls] = np.sum(y == cls) / y.shape[0] 
+        
+        for cls in self.unique_classes:
+            for feature in range(self.n_features):
+                self.em_models[(feature, cls)] = EM(self.k,random_state=self.random_state)
+                self.em_models[(feature, cls)].fit(X[y==cls, feature].reshape(-1,1))
+            
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -430,7 +507,24 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        num_examples = X.shape[0]
+        preds = np.zeros(num_examples)
+        
+        posteriors = {}
+        
+        for cls in self.unique_classes:
+            cls_likelihood = np.ones(num_examples)
+            for feature in range(self.n_features):
+                em_model = self.em_models[(feature ,cls)]
+                weights, mus, sigmas = em_model.get_dist_params()
+                feature_likelihood = gmm_pdf(X[:,feature], weights, mus, sigmas)
+                cls_likelihood *= feature_likelihood
+            cls_posterior = cls_likelihood * self.prior[cls]
+            posteriors[cls] = cls_posterior
+        
+        for i in range(num_examples):
+            preds[i] = max(posteriors, key=lambda cls:posteriors[cls][i])
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
