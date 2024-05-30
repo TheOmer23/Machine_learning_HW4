@@ -1,6 +1,48 @@
 import numpy as np
 import pandas as pd
 
+##### to check if we need to copy this to our code for the model_eval
+import numpy as np
+import pandas as pd
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+
+# Function for ploting the decision boundaries of a model
+def plot_decision_regions(X, y, classifier, resolution=0.01, title=""):
+
+    # setup marker generator and color map
+    markers = ('.', '.')
+    colors = ('blue', 'red')
+    cmap = ListedColormap(colors[:len(np.unique(y))])
+    # plot the decision surface
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
+                           np.arange(x2_min, x2_max, resolution))
+    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
+    Z = Z.reshape(xx1.shape)
+    plt.contourf(xx1, xx2, Z, alpha=0.3, cmap=cmap)
+    plt.xlim(xx1.min(), xx1.max())
+    plt.ylim(xx2.min(), xx2.max())
+
+    for idx, cl in enumerate(np.unique(y)):
+        plt.title(title)
+        plt.scatter(x=X[y == cl, 0], 
+                    y=X[y == cl, 1],
+                    alpha=0.8, 
+                    c=colors[idx],
+                    marker=markers[idx], 
+                    label=cl, 
+                    edgecolor='black')
+    plt.show()
+
+#########
+
+
+
+
+
+
 
 def pearson_correlation( x, y):
     """
@@ -529,7 +571,8 @@ class NaiveBayesGaussian(object):
         #                             END OF YOUR CODE                            #
         ###########################################################################
         return preds
-
+        
+        
 def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     ''' 
     Read the full description of this function in the notebook.
@@ -563,7 +606,40 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    #lor part
+    lor = LogisticRegressionGD(eta=best_eta, eps=best_eps)
+    lor.fit(x_train, y_train)
+    
+    lor_train_predictions = lor.predict(x_train)
+    lor_train_acc = np.mean(lor_train_predictions == y_train)
+    
+    lor_test_predictions = lor.predict(x_test)
+    lor_test_acc = np.mean(lor_test_predictions == y_test)
+    
+    #em part
+    bayes_model = NaiveBayesGaussian(k=k)
+    bayes_model.fit(x_train, y_train)
+    
+    bayes_model_train_predictions = bayes_model.predict(x_train)
+    bayes_train_acc = np.mean(bayes_model_train_predictions == y_train)
+    
+    bayes_model_test_predictions = bayes_model.predict(x_test)
+    bayes_test_acc = np.mean(bayes_model_test_predictions == y_test)
+    
+    #ploting boundaries - import the func in the begining of the code
+    plot_decision_regions(x_train, y_train, lor, title = "logistic regrsion decision boundary")
+    plot_decision_regions(x_train, y_train, bayes_model, title = "naive bayes decision boundary")
+
+    #ploting cost vs iterations for lor
+    num_of_iterations = len(lor.Js)
+    iterations_array = np.arange(num_of_iterations)
+    plt.plot(iterations_array, lor.Js)
+    plt.xlabel("Iterations")
+    plt.ylabel("Cost")
+    plt.title("Cost per Iteration for logistic regrsion")
+    plt.show()
+    
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
