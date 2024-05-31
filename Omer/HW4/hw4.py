@@ -23,12 +23,11 @@ def pearson_correlation( x, y):
 
     sub_x_x_mean = x - x_mean
     sub_y_y_mean = y - y_mean
-    # Calculate the sum of the products of the differences
+    
     sum = np.sum(sub_x_x_mean * sub_y_y_mean)
-    # Calculate the sum of the squares of the differences
+    
     sum_x = np.sum(sub_x_x_mean ** 2)
     sum_y = np.sum(sub_y_y_mean ** 2)
-    # Calculate the Pearson correlation coefficient
     r = sum / np.sqrt(sum_x * sum_y)
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -293,7 +292,15 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        np.random.seed(self.random_state)
+        n_samples, n_features = data.shape
+        self.responsibilities = np.zeros((n_samples, self.k))
+        self.weights = np.ones(self.k) / self.k
+        self.mus = np.random.rand(self.k) * np.ptp(data) + np.min(data) 
+        self.sigmas = np.random.random(self.k)
+        self.costs = []
+
+
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -305,7 +312,17 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        n_samples = data.shape[0]
+
+        sum_responsibilities = np.zeros((n_samples, self.k))
+
+        for j in range(self.k):
+            pdf_res = norm_pdf(data, self.mus[j], self.sigmas[j]).reshape(-1)
+            sum_responsibilities[:, j] = self.weights[j] * pdf_res
+        
+        # Normalize the responsibilities
+        sum_responsibilities /= sum_responsibilities.sum(axis=1,keepdims=True)
+        self.responsibilities = sum_responsibilities
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -317,7 +334,23 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        num_samples = data.shape[0]
+        
+        #new w's
+        self.weights = np.mean(self.responsibilities, axis=0)
+        
+        
+        #new mus
+        for j in range(self.k):
+            resp_j = self.responsibilities[:, j]
+            self.mus[j] = (resp_j @ data) / (self.weights[j] * num_samples)
+                
+        
+        #new sigmas
+        for j in range(self.k):
+            diff = data - self.mus[j]
+            resp_j = self.responsibilities[:, j]
+            self.sigmas[j] = np.sqrt((resp_j @ (diff**2)) / (self.weights[j] * num_samples))
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -334,7 +367,21 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        self.init_params(data)
+        for _ in range(self.n_iter):
+            self.expectation(data)
+            self.maximization(data)
+            
+            checked_pdfs = np.zeros((data.shape[0], self.k))
+            for j in range(self.k):
+                checked_pdfs[: , j] = norm_pdf(data, self.mus[j], self.sigmas[j]).reshape(-1)
+            
+            cost = np.sum(-np.log(checked_pdfs @ self.weights))
+            
+            self.costs.append(cost)
+            
+            if len(self.costs) > 1 and np.abs(self.costs[-2] - self.costs[-1]) < self.eps:
+                break
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
