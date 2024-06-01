@@ -1,11 +1,8 @@
 import numpy as np
 import pandas as pd
-
-##### to check if we need to copy this to our code for the model_eval
-import numpy as np
-import pandas as pd
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
+
 
 # Function for ploting the decision boundaries of a model
 def plot_decision_regions(X, y, classifier, resolution=0.01, title=""):
@@ -35,13 +32,6 @@ def plot_decision_regions(X, y, classifier, resolution=0.01, title=""):
                     label=cl, 
                     edgecolor='black')
     plt.show()
-
-#########
-
-
-
-
-
 
 
 def pearson_correlation( x, y):
@@ -146,7 +136,6 @@ class LogisticRegressionGD(object):
     def h_sigmoid(self, X, theta):
         exp_x = np.exp(X @ theta)
         return exp_x / (1 + exp_x)
-        #return 1.0 / (1.0 + np.exp(-X @ theta))
         
     def cost_func(self, X, y, theta):
         m = len(y)
@@ -355,10 +344,11 @@ class EM(object):
         num_samples, num_features = data.shape
         self.weights = np.ones(self.k) / self.k #initialize as equals weights
             
-        self.mus = np.random.rand(self.k) * np.ptp(data) + np.min(data) #fancy start_values for the mus that should work good, basicly calc the min-max range of the data, multiply it in some random and add the min value of the data
+        #init mus with random uniform numbers between the min to the max of the data
+        self.mus = np.random.uniform(np.min(data), np.max(data), self.k)
         
-        self.sigmas = np.random.random(self.k) #init sigmas with simple random (starting with all ones works as well)
-        
+        #init sigmas with ones
+        self.sigmas = np.ones(self.k)
         
         ###########################################################################
         #                             END OF YOUR CODE                            #
