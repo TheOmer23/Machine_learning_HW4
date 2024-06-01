@@ -560,7 +560,7 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
-        return preds
+        return preds.reshape(-1,1)
         
         
 def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
@@ -611,14 +611,14 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     bayes_model.fit(x_train, y_train)
     
     bayes_model_train_predictions = bayes_model.predict(x_train)
-    bayes_train_acc = np.mean(bayes_model_train_predictions == y_train)
+    bayes_train_acc = np.mean(bayes_model_train_predictions == y_train.reshape(-1,1))
     
     bayes_model_test_predictions = bayes_model.predict(x_test)
-    bayes_test_acc = np.mean(bayes_model_test_predictions == y_test)
+    bayes_test_acc = np.mean(bayes_model_test_predictions == y_test.reshape(-1,1))
     
     #ploting boundaries - import the func in the begining of the code
-    plot_decision_regions(x_train, y_train, lor, title = "logistic regrsion decision boundary")
-    plot_decision_regions(x_train, y_train, bayes_model, title = "naive bayes decision boundary")
+    plot_decision_regions(x_train, y_train, lor, title = "Logistic Regression decision boundary")
+    plot_decision_regions(x_train, y_train, bayes_model, title = "Naive Bayes Gaussian decision boundary")
 
     #ploting cost vs iterations for lor
     num_of_iterations = len(lor.Js)
@@ -626,7 +626,7 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     plt.plot(iterations_array, lor.Js)
     plt.xlabel("Iterations")
     plt.ylabel("Cost")
-    plt.title("Cost per Iteration for logistic regrsion")
+    plt.title("Cost per Iteration for Logistic Regression")
     plt.show()
     
     
@@ -652,7 +652,39 @@ def generate_datasets():
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    #dataset_a
+    a_mean_0 = [0,0,0]
+    a_mean_1 = [0,0,0]
+    a_cov_0 = np.eye(3)
+    a_cov_1 = np.eye(3)*100
+    
+    a_gauss_0 = multivariate_normal(mean=a_mean_0, cov=a_cov_0)
+    a_gauss_1 = multivariate_normal(mean=a_mean_1, cov=a_cov_1)
+    
+    class_0_dataset_a_features = a_gauss_0.rvs(500)
+    class_1_dataset_a_features = a_gauss_1.rvs(500)
+    
+    dataset_a_features = np.vstack((class_0_dataset_a_features, class_1_dataset_a_features))
+    dataset_a_labels = np.concatenate((np.zeros(500), np.ones(500)))
+    
+    #dataset_b
+    b_mean_0 = [0, 0, 0]
+    b_mean_1 = [0, 0, 1]
+    b_cov_0 = np.array([[1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 0]])
+    b_cov_1 = np.array([[1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 0]])
+    
+    b_gauss_0 = multivariate_normal(mean=b_mean_0, cov=b_cov_0, allow_singular=True)
+    b_gauss_1 = multivariate_normal(mean=b_mean_1, cov=b_cov_1, allow_singular=True)
+    
+    class_0_dataset_b_features = b_gauss_0.rvs(500)
+    class_1_dataset_b_features = b_gauss_1.rvs(500)
+    
+    dataset_b_features = np.vstack((class_0_dataset_b_features, class_1_dataset_b_features))
+    dataset_b_labels = np.concatenate((np.zeros(500), np.ones(500)))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
