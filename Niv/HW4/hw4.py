@@ -685,6 +685,42 @@ def generate_datasets():
     
     dataset_b_features = np.vstack((class_0_dataset_b_features, class_1_dataset_b_features))
     dataset_b_labels = np.concatenate((np.zeros(500), np.ones(500)))
+        
+    # plot for dataset_a
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot data points with different colors for different classes
+    ax.scatter(dataset_a_features[dataset_a_labels == 0, 0], dataset_a_features[dataset_a_labels == 0, 1], dataset_a_features[dataset_a_labels == 0, 2], c='r', label='Class 0')
+    ax.scatter(dataset_a_features[dataset_a_labels == 1, 0], dataset_a_features[dataset_a_labels == 1, 1], dataset_a_features[dataset_a_labels == 1, 2], c='b', label='Class 1')
+
+    # Label the axes
+    ax.set_xlabel('Feature 1')
+    ax.set_ylabel('Feature 2')
+    ax.set_zlabel('Feature 3')
+    ax.set_title('Dataset_a 3d')
+    ax.legend()
+    fig.text(0.1, 0.02, 'Visualize Dataset_a\non this dataset Naive Bayes will work better when compared to Logisitc Regression.', fontsize=10)
+    plt.show()
+    
+    
+    # plot for dataset b
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot data points with different colors for different classes
+    ax.scatter(dataset_b_features[dataset_b_labels == 0, 0], dataset_b_features[dataset_b_labels == 0, 1], dataset_b_features[dataset_b_labels == 0, 2], c='r', label='Class 0')
+    ax.scatter(dataset_b_features[dataset_b_labels == 1, 0], dataset_b_features[dataset_b_labels == 1, 1], dataset_b_features[dataset_b_labels == 1, 2], c='b', label='Class 1')
+
+    # Label the axes
+    ax.set_xlabel('Feature 1')
+    ax.set_ylabel('Feature 2')
+    ax.set_zlabel('Feature 3')
+    ax.set_title('Dataset_b 3d')
+    ax.legend()
+    fig.text(0.1, 0.02, 'Visualize Dataset_b\non this dataset Logisitc Regression will work better when compared to Naive Bayes.', fontsize=10)
+    plt.show()
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
