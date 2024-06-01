@@ -407,7 +407,12 @@ def gmm_pdf(data, weights, mus, sigmas):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    n_components = len(weights)
+    pdf = 0
+
+    for i in range(n_components):
+        pdf += weights[i] * norm_pdf(data, mus[i], sigmas[i])
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -445,7 +450,22 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        self.classes = np.unique(y)
+        self.num_features = X.shape[1]
+        self.gmm_models = {}
+        self.class_priors = {}
+
+        # Compute prior probabilities for each class
+        for cls in self.classes:
+            self.class_priors[cls] = np.mean(y == cls)
+
+        # Fit a GMM for each feature in each class
+        for cls in self.classes:
+            for feature_index in range(self.num_features):
+                gmm = EM(k=self.k, random_state=self.random_state)
+                data_for_class_and_feature = X[y == cls, feature_index].reshape(-1, 1)
+                gmm.fit(data_for_class_and_feature)
+                self.gmm_models[(cls, feature_index)] = gmm   
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -461,7 +481,21 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        preds = np.zeros(X.shape[0])
+
+        for i, x in enumerate(X):
+            posteriors = []
+            for cls in self.classes:
+                likelihood = 1
+                for feature_index in range(self.num_features):
+                    gmm = self.gmm_models[(cls, feature_index)]
+                    weights, mus, sigmas = gmm.get_dist_params()
+                    likelihood *= gmm_pdf(x[feature_index].reshape(-1, 1), weights, mus, sigmas)
+                posterior = self.class_priors[cls] * likelihood
+                posteriors.append(posterior)
+            preds[i] = self.classes[np.argmax(posteriors)]
+
+        preds = preds.reshape(-1,1)
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
