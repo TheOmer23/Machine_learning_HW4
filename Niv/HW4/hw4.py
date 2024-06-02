@@ -669,12 +669,12 @@ def generate_datasets():
     
     #dataset_b
     b_mean_0 = [0, 0, 0]
-    b_mean_1 = [0, 0, 1]
-    b_cov_0 = np.array([[1, 0, 0],
-                        [0, 1, 0],
+    b_mean_1 = [0, 0, 0.1]
+    b_cov_0 = np.array([[2.9, 2.1, 0],
+                        [2.1, 1.6, 0],
                         [0, 0, 0]])
-    b_cov_1 = np.array([[1, 0, 0],
-                        [0, 1, 0],
+    b_cov_1 = np.array([[2.9, 2.1, 0],
+                        [2.1, 1.6, 0],
                         [0, 0, 0]])
     
     b_gauss_0 = multivariate_normal(mean=b_mean_0, cov=b_cov_0, allow_singular=True)
@@ -685,7 +685,8 @@ def generate_datasets():
     
     dataset_b_features = np.vstack((class_0_dataset_b_features, class_1_dataset_b_features))
     dataset_b_labels = np.concatenate((np.zeros(500), np.ones(500)))
-        
+    
+    
     # plot for dataset_a
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -698,7 +699,7 @@ def generate_datasets():
     ax.set_xlabel('Feature 1')
     ax.set_ylabel('Feature 2')
     ax.set_zlabel('Feature 3')
-    ax.set_title('Dataset_a 3d')
+    ax.set_title('Dataset_A 3D Visualize')
     ax.legend()
     fig.text(0.1, 0.02, 'Visualize Dataset_a\non this dataset Naive Bayes will work better when compared to Logisitc Regression.', fontsize=10)
     plt.show()
@@ -716,7 +717,7 @@ def generate_datasets():
     ax.set_xlabel('Feature 1')
     ax.set_ylabel('Feature 2')
     ax.set_zlabel('Feature 3')
-    ax.set_title('Dataset_b 3d')
+    ax.set_title('Dataset_b 3D Visualize')
     ax.legend()
     fig.text(0.1, 0.02, 'Visualize Dataset_b\non this dataset Logisitc Regression will work better when compared to Naive Bayes.', fontsize=10)
     plt.show()
