@@ -669,12 +669,12 @@ def generate_datasets():
     
     #dataset_b
     b_mean_0 = [0, 0, 0]
-    b_mean_1 = [0, 0, 0.1]
-    b_cov_0 = np.array([[2.9, 2.1, 0],
-                        [2.1, 1.6, 0],
+    b_mean_1 = [0.1, 0.1, 0]
+    b_cov_0 = np.array([[1, 0.95, 0.95],
+                        [0.95, 1, 0.95],
                         [0, 0, 0]])
-    b_cov_1 = np.array([[2.9, 2.1, 0],
-                        [2.1, 1.6, 0],
+    b_cov_1 = np.array([[1, 0.95, 0.95],
+                        [0.95, 1, 0.95],
                         [0, 0, 0]])
     
     b_gauss_0 = multivariate_normal(mean=b_mean_0, cov=b_cov_0, allow_singular=True)
