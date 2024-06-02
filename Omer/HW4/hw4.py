@@ -1,5 +1,41 @@
 import numpy as np
 import pandas as pd
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+
+
+
+# Function for ploting the decision boundaries of a model
+def plot_decision_regions(X, y, classifier, resolution=0.01, title=""):
+    from matplotlib.colors import ListedColormap
+    import matplotlib.pyplot as plt
+
+    # setup marker generator and color map
+    markers = ('.', '.')
+    colors = ('blue', 'red')
+    cmap = ListedColormap(colors[:len(np.unique(y))])
+    
+    # plot the decision surface
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
+                           np.arange(x2_min, x2_max, resolution))
+    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
+    Z = Z.reshape(xx1.shape)
+    plt.contourf(xx1, xx2, Z, alpha=0.3, cmap=cmap)
+    plt.xlim(xx1.min(), xx1.max())
+    plt.ylim(xx2.min(), xx2.max())
+
+    for idx, cl in enumerate(np.unique(y)):
+        plt.title(title)
+        plt.scatter(x=X[y == cl, 0], 
+                    y=X[y == cl, 1],
+                    alpha=0.8, 
+                    c=colors[idx],
+                    marker=markers[idx], 
+                    label=cl, 
+                    edgecolor='black')
+    plt.show()
 
 
 def pearson_correlation( x, y):
@@ -17,18 +53,20 @@ def pearson_correlation( x, y):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    # Calculate the mean of the two columns
     x_mean = np.mean(x)
     y_mean = np.mean(y)
-
-    sub_x_x_mean = x - x_mean
-    sub_y_y_mean = y - y_mean
     
-    sum = np.sum(sub_x_x_mean * sub_y_y_mean)
+    x_sub_mean = x - x_mean
+    y_sub_mean = y - y_mean
     
-    sum_x = np.sum(sub_x_x_mean ** 2)
-    sum_y = np.sum(sub_y_y_mean ** 2)
-    r = sum / np.sqrt(sum_x * sum_y)
+    numerator = np.sum(x_sub_mean * y_sub_mean)
+    
+    denominator_x = np.sum(x_sub_mean**2)
+    denominator_y = np.sum(y_sub_mean**2)
+    final_denominator = np.sqrt(denominator_x * denominator_y)
+    
+    r = numerator / final_denominator
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -49,8 +87,10 @@ def feature_selection(X, y, n_features=5):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    if 'date' in X.columns:
-        X = X.drop(columns=['date'])
+    
+    #if 'date' in X.columns:
+    #    X = X.drop(columns=['date'])
+    X = X.select_dtypes(include=[np.number])
     X_arr = np.array(X)
     y_arr = np.array(y)
     
@@ -95,7 +135,20 @@ class LogisticRegressionGD(object):
         # iterations history
         self.Js = []
         self.thetas = []
-
+    
+    
+    def h_sigmoid(self, X, theta):
+        exp_x = np.exp(X @ theta)
+        return exp_x / (1 + exp_x)
+        
+    def cost_func(self, X, y, theta):
+        m = len(y)
+        h = self.h_sigmoid(X, theta)
+        
+        J = (1/m) * (np.sum(-y * np.log(h) - (1 - y) * np.log(1 - h)))
+        
+        return J
+    
     def fit(self, X, y):
         """
         Fit training data (the learning phase).
@@ -121,25 +174,21 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-                # initialize weights
-        self.theta = np.random.rand(X.shape[1])
-
-        for i in range(self.n_iter):
-            # Compute the linear combination of inputs and weights
-            z = np.dot(X, self.theta)
-            # Apply the sigmoid function
-            h = 1 / (1 + np.exp(-z))
-            # Compute the cost
-            J = -np.mean(y * np.log(h) + (1 - y) * np.log(1 - h))
-            # Store the cost and theta values
+        X = np.c_[np.ones(len(X)),X] ##### add bias
+        self.theta = np.random.random(X.shape[1]) ##
+        m = len(y)
+        
+        for iter in range(self.n_iter):
+            h = self.h_sigmoid(X, self.theta)
+            gradients = (1/m) * (X.T @ (h - y))
+            
+            self.theta -= self.eta * gradients
+            
+            J = self.cost_func(X, y, self.theta)
             self.Js.append(J)
             self.thetas.append(self.theta.copy())
-            # Compute the gradient
-            gradient = np.dot(X.T, (h - y)) / y.size
-            # Update the weights
-            self.theta -= self.eta * gradient
-            # Check for convergence
-            if i > 0 and abs(self.Js[-1] - self.Js[-2]) < self.eps:
+            
+            if len(self.Js) > 1 and abs((self.Js[-2] - self.Js[-1])) < self.eps: ##does we need abs?
                 break
         ###########################################################################
         #                             END OF YOUR CODE                            #
@@ -156,9 +205,11 @@ class LogisticRegressionGD(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        z = np.dot(X, self.theta)
-        h = 1 / (1 + np.exp(-z))
-        preds = np.where(h >= 0.5, 1, 0)
+        X = np.c_[np.ones(len(X)),X] ##### add bias
+        preds = self.h_sigmoid(X, self.theta)
+        preds[preds >= 0.5] = 1
+        preds[preds < 0.5] = 0
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -196,37 +247,34 @@ def cross_validation(X, y, folds, algo, random_state):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    indices = np.arange(X.shape[0])
-    np.random.shuffle(indices)
-    X, y = X[indices], y[indices]
-
-    # Split data into folds
-    fold_size = X.shape[0] // folds
-    accuracies = []
-
-    for i in range(folds):
-        # Define the start and end of the validation fold
-        start = i * fold_size
-        end = start + fold_size if i != folds - 1 else X.shape[0]
-
-        # Split the data into training and validation sets
-        X_train = np.concatenate((X[:start], X[end:]), axis=0)
-        y_train = np.concatenate((y[:start], y[end:]), axis=0)
-        X_val = X[start:end]
-        y_val = y[start:end]
-
-        # Train the model
+    n_examples = len(y)
+    new_indexs = np.random.permutation(n_examples)
+    
+    shuffled_X = X[new_indexs]
+    shuffled_y = y[new_indexs]
+    
+    fold_size = n_examples // folds
+    
+    all_cv_accuracy = []
+    
+    for fold_num in range(folds):
+        start_index = fold_num * fold_size
+        end_index = start_index + fold_size
+        
+        X_test = shuffled_X[start_index : end_index]
+        y_test = shuffled_y[start_index : end_index]
+        
+        X_train = np.concatenate((shuffled_X[:start_index], shuffled_X[end_index:]), axis=0)
+        y_train = np.concatenate((shuffled_y[:start_index], shuffled_y[end_index:]), axis=0)
+        
         algo.fit(X_train, y_train)
-
-        # Predict on validation set
-        predictions = algo.predict(X_val)
-
-        # Calculate accuracy
-        accuracy = np.mean(predictions == y_val)
-        accuracies.append(accuracy)
-
-    # Calculate the average accuracy over all folds
-    cv_accuracy = np.mean(accuracies)
+        y_test_pred = algo.predict(X_test)
+        
+        fold_accuracy = np.mean(y_test_pred == y_test)
+        all_cv_accuracy.append(fold_accuracy)
+        
+    cv_accuracy = np.mean(all_cv_accuracy)
+        
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -248,7 +296,11 @@ def norm_pdf(data, mu, sigma):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    p = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((data - mu) / sigma) ** 2)
+    p_denominator = 1 / (sigma * np.sqrt(2 * np.pi))
+    
+    exp_power = -(((data - mu)**2) / (2 * sigma**2))
+    
+    p = p_denominator * np.exp(exp_power)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -293,14 +345,15 @@ class EM(object):
         # TODO: Implement the function.                                           #
         ###########################################################################
         np.random.seed(self.random_state)
-        n_samples, n_features = data.shape
-        self.responsibilities = np.zeros((n_samples, self.k))
-        self.weights = np.ones(self.k) / self.k
-        self.mus = np.random.rand(self.k) * np.ptp(data) + np.min(data) 
-        self.sigmas = np.random.random(self.k)
-        self.costs = []
-
-
+        num_samples, num_features = data.shape
+        self.weights = np.ones(self.k) / self.k #initialize as equals weights
+            
+        #init mus with random uniform numbers between the min to the max of the data
+        self.mus = np.random.uniform(np.min(data), np.max(data), self.k)
+        
+        #init sigmas with ones
+        self.sigmas = np.ones(self.k)
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -312,17 +365,20 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        n_samples = data.shape[0]
-
-        sum_responsibilities = np.zeros((n_samples, self.k))
-
-        for j in range(self.k):
-            pdf_res = norm_pdf(data, self.mus[j], self.sigmas[j]).reshape(-1)
-            sum_responsibilities[:, j] = self.weights[j] * pdf_res
+        num_samples, num_features = data.shape
+                        
+        responsibilities = np.zeros((num_samples, self.k))
         
-        # Normalize the responsibilities
-        sum_responsibilities /= sum_responsibilities.sum(axis=1,keepdims=True)
-        self.responsibilities = sum_responsibilities
+        for j in range(self.k):
+            pdf_res = norm_pdf(data, self.mus[j], self.sigmas[j])
+            if pdf_res.ndim > 1:
+                pdf_res = pdf_res.reshape(-1)
+            responsibilities[:, j] = self.weights[j] * pdf_res
+        
+        responsibilities /= responsibilities.sum(axis=1, keepdims=True)
+        self.responsibilities = responsibilities
+        
+                
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -334,7 +390,7 @@ class EM(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        num_samples = data.shape[0]
+        num_samples, num_features = data.shape
         
         #new w's
         self.weights = np.mean(self.responsibilities, axis=0)
@@ -351,6 +407,8 @@ class EM(object):
             diff = data - self.mus[j]
             resp_j = self.responsibilities[:, j]
             self.sigmas[j] = np.sqrt((resp_j @ (diff**2)) / (self.weights[j] * num_samples))
+        
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -368,6 +426,8 @@ class EM(object):
         # TODO: Implement the function.                                           #
         ###########################################################################
         self.init_params(data)
+        self.costs = []
+        
         for _ in range(self.n_iter):
             self.expectation(data)
             self.maximization(data)
@@ -382,6 +442,8 @@ class EM(object):
             
             if len(self.costs) > 1 and np.abs(self.costs[-2] - self.costs[-1]) < self.eps:
                 break
+                
+            
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -407,12 +469,12 @@ def gmm_pdf(data, weights, mus, sigmas):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    n_components = len(weights)
-    pdf = 0
-
-    for i in range(n_components):
-        pdf += weights[i] * norm_pdf(data, mus[i], sigmas[i])
     
+    k = len(weights)
+    pdf = 0
+    for j in range(k):
+        pdf += weights[j] * norm_pdf(data, mus[j], sigmas[j])
+    return pdf
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -434,6 +496,9 @@ class NaiveBayesGaussian(object):
         self.k = k
         self.random_state = random_state
         self.prior = None
+        self.em_models = None
+        self.unique_classes = None
+        self.n_features = None
 
     def fit(self, X, y):
         """
@@ -450,22 +515,19 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        self.classes = np.unique(y)
-        self.num_features = X.shape[1]
-        self.gmm_models = {}
-        self.class_priors = {}
-
-        # Compute prior probabilities for each class
-        for cls in self.classes:
-            self.class_priors[cls] = np.mean(y == cls)
-
-        # Fit a GMM for each feature in each class
-        for cls in self.classes:
-            for feature_index in range(self.num_features):
-                gmm = EM(k=self.k, random_state=self.random_state)
-                data_for_class_and_feature = X[y == cls, feature_index].reshape(-1, 1)
-                gmm.fit(data_for_class_and_feature)
-                self.gmm_models[(cls, feature_index)] = gmm   
+        self.unique_classes = np.unique(y)
+        self.n_features = X.shape[1]
+        self.em_models = {}
+        self.prior = {}
+        
+        for cls in self.unique_classes:
+            self.prior[cls] = np.sum(y == cls) / y.shape[0] 
+        
+        for cls in self.unique_classes:
+            for feature in range(self.n_features):
+                self.em_models[(feature, cls)] = EM(self.k,random_state=self.random_state)
+                self.em_models[(feature, cls)].fit(X[y==cls, feature].reshape(-1,1))
+            
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -481,26 +543,30 @@ class NaiveBayesGaussian(object):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        preds = np.zeros(X.shape[0])
-
-        for i, x in enumerate(X):
-            posteriors = []
-            for cls in self.classes:
-                likelihood = 1
-                for feature_index in range(self.num_features):
-                    gmm = self.gmm_models[(cls, feature_index)]
-                    weights, mus, sigmas = gmm.get_dist_params()
-                    likelihood *= gmm_pdf(x[feature_index].reshape(-1, 1), weights, mus, sigmas)
-                posterior = self.class_priors[cls] * likelihood
-                posteriors.append(posterior)
-            preds[i] = self.classes[np.argmax(posteriors)]
-
-        preds = preds.reshape(-1,1)
+        num_examples = X.shape[0]
+        preds = np.zeros(num_examples)
+        
+        posteriors = {}
+        
+        for cls in self.unique_classes:
+            cls_likelihood = np.ones(num_examples)
+            for feature in range(self.n_features):
+                em_model = self.em_models[(feature ,cls)]
+                weights, mus, sigmas = em_model.get_dist_params()
+                feature_likelihood = gmm_pdf(X[:,feature], weights, mus, sigmas)
+                cls_likelihood *= feature_likelihood
+            cls_posterior = cls_likelihood * self.prior[cls]
+            posteriors[cls] = cls_posterior
+        
+        for i in range(num_examples):
+            preds[i] = max(posteriors, key=lambda cls:posteriors[cls][i])
+        
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
-        return preds
-
+        return preds.reshape(-1,1)
+        
+        
 def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     ''' 
     Read the full description of this function in the notebook.
@@ -534,7 +600,39 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    lor = LogisticRegressionGD(eta=best_eta, eps=best_eps)
+    lor.fit(x_train, y_train)
+    
+    lor_train_predictions = lor.predict(x_train)
+    lor_train_acc = np.mean(lor_train_predictions == y_train)
+    
+    lor_test_predictions = lor.predict(x_test)
+    lor_test_acc = np.mean(lor_test_predictions == y_test)
+    
+    # Naive Bayes part
+    bayes_model = NaiveBayesGaussian(k=k)
+    bayes_model.fit(x_train, y_train)
+    
+    bayes_model_train_predictions = bayes_model.predict(x_train)
+    bayes_train_acc = np.mean(bayes_model_train_predictions == y_train.reshape(-1,1))
+    
+    bayes_model_test_predictions = bayes_model.predict(x_test)
+    bayes_test_acc = np.mean(bayes_model_test_predictions == y_test.reshape(-1,1))
+    
+    # Plotting decision boundaries
+    plot_decision_regions(x_train, y_train, lor, title="Logistic Regression decision boundary")
+    plot_decision_regions(x_train, y_train, bayes_model, title="Naive Bayes Gaussian decision boundary")
+
+    # Plotting cost vs iterations for Logistic Regression
+    num_of_iterations = len(lor.Js)
+    iterations_array = np.arange(num_of_iterations)
+    plt.plot(iterations_array, lor.Js, color='blue')  # Ensure a valid color value
+    plt.xlabel("Iterations")
+    plt.ylabel("Cost")
+    plt.title("Cost per Iteration for Logistic Regression")
+    plt.show()
+    
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -557,7 +655,40 @@ def generate_datasets():
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    #dataset_a
+    a_mean_0 = [0, 0, 0]
+    a_mean_1 = [0, 0, 0]
+    a_cov_0 = np.eye(3)
+    a_cov_1 = np.eye(3) * 100
+    
+    a_gauss_0 = multivariate_normal(mean=a_mean_0, cov=a_cov_0)
+    a_gauss_1 = multivariate_normal(mean=a_mean_1, cov=a_cov_1)
+    
+    class_0_dataset_a_features = a_gauss_0.rvs(500)
+    class_1_dataset_a_features = a_gauss_1.rvs(500)
+    
+    dataset_a_features = np.vstack((class_0_dataset_a_features, class_1_dataset_a_features))
+    dataset_a_labels = np.concatenate((np.zeros(500), np.ones(500)))
+    
+    # Dataset B
+    b_mean_0 = [0, 0, 0]
+    b_mean_1 = [0, 0, 1]
+    b_cov_0 = np.array([[1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 0]])
+    b_cov_1 = np.array([[1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 0]])
+    
+    b_gauss_0 = multivariate_normal(mean=b_mean_0, cov=b_cov_0, allow_singular=True)
+    b_gauss_1 = multivariate_normal(mean=b_mean_1, cov=b_cov_1, allow_singular=True)
+    
+    class_0_dataset_b_features = b_gauss_0.rvs(500)
+    class_1_dataset_b_features = b_gauss_1.rvs(500)
+    
+    dataset_b_features = np.vstack((class_0_dataset_b_features, class_1_dataset_b_features))
+    dataset_b_labels = np.concatenate((np.zeros(500), np.ones(500)))
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -566,3 +697,52 @@ def generate_datasets():
            'dataset_b_features': dataset_b_features,
            'dataset_b_labels': dataset_b_labels
            }
+
+def plot_2d_graphs(dataset_features, dataset_labels, dataset_name):
+    plt.figure(figsize=(15, 5))
+    
+    # Plot feature1 vs feature2
+    plt.subplot(1, 3, 1)
+    plt.scatter(dataset_features[dataset_labels == 0][:, 0], dataset_features[dataset_labels == 0][:, 1], color='red', label='Class 0')
+    plt.scatter(dataset_features[dataset_labels == 1][:, 0], dataset_features[dataset_labels == 1][:, 1], color='blue', label='Class 1')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.title(f'{dataset_name}: Feature 1 vs Feature 2')
+    plt.legend()
+
+    # Plot feature1 vs feature3
+    plt.subplot(1, 3, 2)
+    plt.scatter(dataset_features[dataset_labels == 0][:, 0], dataset_features[dataset_labels == 0][:, 2], color='red', label='Class 0')
+    plt.scatter(dataset_features[dataset_labels == 1][:, 0], dataset_features[dataset_labels == 1][:, 2], color='blue', label='Class 1')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 3')
+    plt.title(f'{dataset_name}: Feature 1 vs Feature 3')
+    plt.legend()
+
+    # Plot feature2 vs feature3
+    plt.subplot(1, 3, 3)
+    plt.scatter(dataset_features[dataset_labels == 0][:, 1], dataset_features[dataset_labels == 0][:, 2], color='red', label='Class 0')
+    plt.scatter(dataset_features[dataset_labels == 1][:, 1], dataset_features[dataset_labels == 1][:, 2], color='blue', label='Class 1')
+    plt.xlabel('Feature 2')
+    plt.ylabel('Feature 3')
+    plt.title(f'{dataset_name}: Feature 2 vs Feature 3')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_3d_graph(dataset_features, dataset_labels, dataset_name):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot data points with different colors for different classes
+    ax.scatter(dataset_features[dataset_labels == 0, 0], dataset_features[dataset_labels == 0, 1], dataset_features[dataset_labels == 0, 2], c='r', label='Class 0')
+    ax.scatter(dataset_features[dataset_labels == 1, 0], dataset_features[dataset_labels == 1, 1], dataset_features[dataset_labels == 1, 2], c='b', label='Class 1')
+
+    # Label the axes
+    ax.set_xlabel('Feature 1')
+    ax.set_ylabel('Feature 2')
+    ax.set_zlabel('Feature 3')
+    ax.set_title(f'{dataset_name} 3D')
+    ax.legend()
+    plt.show()
