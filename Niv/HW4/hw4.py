@@ -695,7 +695,7 @@ def generate_datasets():
     ax.scatter(dataset_a_features[dataset_a_labels == 0, 0], dataset_a_features[dataset_a_labels == 0, 1], dataset_a_features[dataset_a_labels == 0, 2], c='r', label='Class 0')
     ax.scatter(dataset_a_features[dataset_a_labels == 1, 0], dataset_a_features[dataset_a_labels == 1, 1], dataset_a_features[dataset_a_labels == 1, 2], c='b', label='Class 1')
 
-    # Label the axes
+    # add labels, title and info to the plot
     ax.set_xlabel('Feature 1')
     ax.set_ylabel('Feature 2')
     ax.set_zlabel('Feature 3')
@@ -713,7 +713,7 @@ def generate_datasets():
     ax.scatter(dataset_b_features[dataset_b_labels == 0, 0], dataset_b_features[dataset_b_labels == 0, 1], dataset_b_features[dataset_b_labels == 0, 2], c='r', label='Class 0')
     ax.scatter(dataset_b_features[dataset_b_labels == 1, 0], dataset_b_features[dataset_b_labels == 1, 1], dataset_b_features[dataset_b_labels == 1, 2], c='b', label='Class 1')
 
-    # Label the axes
+    # add labels, title and info to the plot
     ax.set_xlabel('Feature 1')
     ax.set_ylabel('Feature 2')
     ax.set_zlabel('Feature 3')
